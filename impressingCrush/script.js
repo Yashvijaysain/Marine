@@ -46,9 +46,30 @@ class Paper {
         this.prevMouseX = this.mouseX;
         this.prevMouseY = this.mouseY;
 
-        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
+        paper.style.transform = `translate(${this.currentPaperX}px, ${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
       }
     })
+
+    // Touch support for smooth drag
+    document.addEventListener('touchmove', (e) => {
+      if(this.holdingPaper && e.touches.length === 1) {
+        const touch = e.touches[0];
+        this.mouseX = touch.clientX;
+        this.mouseY = touch.clientY;
+        this.velX = this.mouseX - this.prevMouseX;
+        this.velY = this.mouseY - this.prevMouseY;
+
+        if(!this.rotating) {
+          this.currentPaperX += this.velX;
+          this.currentPaperY += this.velY;
+        }
+        this.prevMouseX = this.mouseX;
+        this.prevMouseY = this.mouseY;
+
+        paper.style.transform = `translate(${this.currentPaperX}px, ${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
+        e.preventDefault();
+      }
+    }, { passive: false });
 
     paper.addEventListener('mousedown', (e) => {
       if(this.holdingPaper) return; 
@@ -67,7 +88,22 @@ class Paper {
         this.rotating = true;
       }
     });
+    paper.addEventListener('touchstart', (e) => {
+      if(this.holdingPaper) return;
+      this.holdingPaper = true;
+      paper.style.zIndex = highestZ;
+      highestZ += 1;
+      const touch = e.touches[0];
+      this.mouseTouchX = touch.clientX;
+      this.mouseTouchY = touch.clientY;
+      this.prevMouseX = touch.clientX;
+      this.prevMouseY = touch.clientY;
+    });
     window.addEventListener('mouseup', () => {
+      this.holdingPaper = false;
+      this.rotating = false;
+    });
+    window.addEventListener('touchend', () => {
       this.holdingPaper = false;
       this.rotating = false;
     });
@@ -79,53 +115,4 @@ const papers = Array.from(document.querySelectorAll('.paper'));
 papers.forEach(paper => {
   const p = new Paper();
   p.init(paper);
-});
-
-document.querySelectorAll('.paper').forEach(function(paper) {
-  let isDragging = false;
-  let startX, startY, origX, origY;
-
-  // Mouse events
-  paper.addEventListener('mousedown', function(e) {
-    isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    origX = paper.offsetLeft;
-    origY = paper.offsetTop;
-    paper.style.position = 'absolute';
-    paper.style.zIndex = 1000;
-  });
-
-  document.addEventListener('mousemove', function(e) {
-    if (isDragging) {
-      paper.style.left = origX + (e.clientX - startX) + 'px';
-      paper.style.top = origY + (e.clientY - startY) + 'px';
-    }
-  });
-
-  document.addEventListener('mouseup', function() {
-    isDragging = false;
-  });
-
-  // Touch events
-  paper.addEventListener('touchstart', function(e) {
-    isDragging = true;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    origX = paper.offsetLeft;
-    origY = paper.offsetTop;
-    paper.style.position = 'absolute';
-    paper.style.zIndex = 1000;
-  });
-
-  document.addEventListener('touchmove', function(e) {
-    if (isDragging) {
-      paper.style.left = origX + (e.touches[0].clientX - startX) + 'px';
-      paper.style.top = origY + (e.touches[0].clientY - startY) + 'px';
-    }
-  });
-
-  document.addEventListener('touchend', function() {
-    isDragging = false;
-  });
 });
